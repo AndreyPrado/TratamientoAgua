@@ -6,7 +6,17 @@ library(hms)
 
 # Lectura de la base de datos
 
-base <- read_excel("data/Metabase.xlsx", sheet = "Datos", range = "A1:GG93", na = "-1")
+base <- read_excel("data/Metabase.xlsx", 
+                   sheet = "Datos", 
+                   range = "A1:GG93", 
+                   na = c('-1',
+                          "99/99/99", 
+                          '999999', 
+                          '00/00/00',
+                          '99:99',
+                          '99:99:99',
+                          '888888',
+                          '9999'))
 view(base)
 
 # Selección de Columnas para el estudio
@@ -48,27 +58,15 @@ base <- base %>% mutate(
   ),
   fecha = case_when(
     str_detect(fecha, "^99/99") ~ NA,
-    fecha == "02dec2019" ~ "02/12/2019",
-    fecha == "02nov2019" ~ "02/11/2019",
-    fecha == "11feb2019" ~ "11/02/2019",
+    fecha == "02dec2019" ~ "12/02/2019",
+    fecha == "02nov2019" ~ "11/02/2019",
+    fecha == "11feb2019" ~ "02/11/2019",
     TRUE ~ as.character(fecha)
-  ),
-  fecharecolectaf = case_when(
-    str_detect(fecharecolectaf, "^99/99") ~ NA,
-    str_detect(fecharecolectaf, "00/00/00") ~ NA,
-    TRUE ~ as.character(fecharecolectaf) 
-  ),
-  fecharecolectaj = case_when(
-    str_detect(fecharecolectaj, "^99/99") ~ NA,
-    str_detect(fecharecolectaj, "00/00/00") ~ NA,
-    TRUE ~ as.character(fecharecolectaj) 
   )
 ) %>% 
   mutate(fecha = mdy(fecha),
          fecharecolectaj = mdy(fecharecolectaj),
          fecharecolectaf = mdy(fecharecolectaf))
-
-
 
 # Asignación de tipo de columna
 
@@ -159,12 +157,12 @@ resumen_na_por_columna <- data.frame(resumen_na_por_columna)
 
 view(resumen_na_por_columna)
 
-cols_mas_70_na <- resumen_na_por_columna %>% 
-  filter(porcentaje_na > 70) %>%
+cols_mas_75_na <- resumen_na_por_columna %>% 
+  filter(porcentaje_na > 75) %>%
   pull(columna)
 
 
-base <- base %>% select(-all_of(cols_mas_70_na))
+base <- base %>% select(-all_of(cols_mas_75_na))
 
 # Eliminación de filas
 
@@ -179,28 +177,12 @@ resumen_na_por_filas <- data.frame(resumen_na_por_filas)
 
 view(resumen_na_por_filas)
 
-base <- base %>%
-  mutate(
-    porcentaje_na = rowSums(is.na(.)) / ncol(.) * 100
-  ) %>%
-  filter(porcentaje_na < 85) %>%  # solo filas con menos de 85% NA
-  select(-porcentaje_na)
-
-
-# Ordenar el data frame por fecha
-
-base <- base %>% arrange(fecha, hora)
-
-# Para efectos del análisis de datos y el posterior modelo se ordenarán como factor las variables categórcas
-
-base$sitio <- as.factor(base$sitio)
-base$ubi_muestra <- as.factor(base$ubi_muestra)
-base$cuerpo <- as.factor(base$cuerpo)
-base$analisis_agua1 <- as.factor(base$analisis_agua1)
-
-# Extra: Eliminar la observación 55 por falta de fecha
-
-base <- base[-nrow(base),]
+#base <- base %>%
+#  mutate(
+#    porcentaje_na = rowSums(is.na(.)) / ncol(.) * 100
+#  ) %>%
+#  filter(porcentaje_na < 85) %>%  # solo filas con menos de 85% NA
+#  select(-porcentaje_na)
 
 # Guardar csv con la base limpia
 
