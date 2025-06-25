@@ -123,7 +123,9 @@ base <- base %>%
 
 ## Primero calcular la cantidad de NA's en las columnas y el porcentaje sobre el total
 
-resumen_na <- base %>% 
+### Esto da sobre la columna
+
+resumen_na_por_columna <- base %>% 
   summarise(across(everything(), 
                    ~sum(is.na(.)))) %>% 
   pivot_longer(cols = everything(), 
@@ -134,6 +136,33 @@ resumen_na <- base %>%
     porcentaje_na = (cantidad_na / total) * 100
   )
 
-resumen_na <- data.frame(resumen_na)
+resumen_na_por_columna <- data.frame(resumen_na_por_columna)
 
-view(resumen_na)
+view(resumen_na_por_columna)
+
+cols_mas_80_na <- resumen_na %>% 
+  filter(porcentaje_na > 80) %>%
+  pull(columna)
+
+
+base <- base %>% select(-all_of(cols_mas_80_na))
+
+### Esto da sobre la fila
+
+resumen_na_por_filas <- base %>%
+  mutate(
+    cantidad_na = rowSums(is.na(.)),
+    porcentaje_na = (cantidad_na / ncol(.)) * 100
+  ) %>%
+  select(cantidad_na, porcentaje_na)
+
+resumen_na_por_filas <- data.frame(resumen_na_por_filas)
+
+view(resumen_na_por_filas)
+
+base <- base %>%
+  mutate(
+    porcentaje_na = rowSums(is.na(.)) / ncol(.) * 100
+  ) %>%
+  filter(porcentaje_na < 85) %>%  # solo filas con menos de 85% NA
+  select(-porcentaje_na)
