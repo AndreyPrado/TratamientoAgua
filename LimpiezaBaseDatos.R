@@ -1,23 +1,25 @@
 library(readxl)
+library(openxlsx)
 library(tidyverse)
 library(lubridate)
+library(hms)
 
 # Lectura de la base de datos
 
-base <- read_excel("Metabase.xlsx", sheet = "Datos")
+base <- read_excel("data/Metabase.xlsx", sheet = "Datos")
 view(base)
 
 # Selección de Columnas para el estudio
 
 base <- base %>% 
-  select(sitio, ubi_muestra = ubicación, cuerpo, fecha, profundidad, secchi, temperatura, salinidad,
+  select(sitio, ubi_muestra = ubicación, cuerpo, fecha,hora, profundidad, secchi, temperatura, salinidad,
          oxigeno, solidos_dis = TDS , conduc, conduc_abs =conduc_ABS,
          resist, PPWO, presion, sat_oxigen, latitud, longitud,
          analisis_agua1, ph, ph1, 
          fosfatos, silicatos, amonio, nitritos, nitratos, filtros_chla,
          chla_agua, faopigmentos, filtros_matsuspension, matsuspension,
          , alcali_parcial, alcali_total, carbonatos, zinc, cobre,  ca2, mg2, na, k,cl,
-         SO42, dbof, dboj)
+         SO42, dbof, dboj, dqof, dqoj)
 
 # Limpieza de columnas y asignación de NA's
 
@@ -100,7 +102,14 @@ base <- base %>%
     ph1 = na_if(ph1, 9999.00),
     faopigmentos = na_if(faopigmentos, 9999.00),
     dboj = na_if(dboj, 999999.0),
-    dbof = na_if(dbof, 888888.0)
+    dbof = na_if(dbof, 888888.0),
+    latitud = na_if(latitud, 9.999990e+05),
+    dqof = na_if(dqof, -1),
+    dqoj = na_if(dqoj, -1),
+    dboj = na_if(dboj, 999999.0),
+    dqoj = na_if(dqoj, 999999.0),
+    dbof = na_if(dboj, 888888),
+    dqof = na_if(dqof, 888888)
   )
 
 # Arreglar las fechas
@@ -118,6 +127,16 @@ base <- base %>%
     
     fecha = as.Date(fecha)
   )
+
+base <- base %>% 
+  mutate(hora = ifelse(hora %in% c("99:99", "99:99:99", "-1"), NA, hora))
+
+base <- base %>% 
+  mutate(hora = ifelse(str_detect(hora, "^\\d{1,2}:\\d{2}$"),
+                       paste0(hora, ":00"),
+                       hora))
+
+base$hora <- as_hms(base$hora)
 
 # Eliminación de columnas
 
@@ -166,3 +185,23 @@ base <- base %>%
   ) %>%
   filter(porcentaje_na < 85) %>%  # solo filas con menos de 85% NA
   select(-porcentaje_na)
+
+
+# Ordenar el data frame por fecha
+
+base <- base %>% arrange(fecha, hora)
+
+# Para efectos del análisis de datos y el posterior modelo se ordenarán como factor las variables categórcas
+
+base$sitio <- as.factor(base$sitio)
+base$ubi_muestra <- as.factor(base$ubi_muestra)
+base$cuerpo <- as.factor(base$cuerpo)
+base$analisis_agua1 <- as.factor(base$analisis_agua1)
+
+# Extra: Eliminar la observación 55 por falta de fecha
+
+base <- base[-nrow(base),]
+
+# Guardar csv con la base limpia
+
+write.xlsx(base, "data/base_agua_limpia.xlsx", na= "NA")
