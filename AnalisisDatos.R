@@ -7,7 +7,7 @@ library(ggcorrplot)
 # Cargar la base limpia
 
 base <- read_excel("data/base_agua_limpia.xlsx")
-view(base)
+# view(base)
 
 # Resumen general de la base de datos
 

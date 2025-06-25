@@ -17,7 +17,7 @@ base <- read_excel("data/Metabase.xlsx",
                           '99:99:99',
                           '888888',
                           '9999'))
-view(base)
+# view(base)
 
 # Selección de Columnas para el estudio
 
@@ -57,7 +57,6 @@ base <- base %>% mutate(
     TRUE ~ NA
   ),
   fecha = case_when(
-    str_detect(fecha, "^99/99") ~ NA,
     fecha == "02dec2019" ~ "12/02/2019",
     fecha == "02nov2019" ~ "11/02/2019",
     fecha == "11feb2019" ~ "02/11/2019",
@@ -155,7 +154,7 @@ resumen_na_por_columna <- base %>%
 
 resumen_na_por_columna <- data.frame(resumen_na_por_columna)
 
-view(resumen_na_por_columna)
+# view(resumen_na_por_columna)
 
 cols_mas_75_na <- resumen_na_por_columna %>% 
   filter(porcentaje_na > 75) %>%
@@ -175,7 +174,7 @@ resumen_na_por_filas <- base %>%
 
 resumen_na_por_filas <- data.frame(resumen_na_por_filas)
 
-view(resumen_na_por_filas)
+# view(resumen_na_por_filas)
 
 #base <- base %>%
 #  mutate(
@@ -187,3 +186,5 @@ view(resumen_na_por_filas)
 # Guardar csv con la base limpia
 
 write.xlsx(base, "data/base_agua_limpia.xlsx", na= "NA")
+
+view(base)
