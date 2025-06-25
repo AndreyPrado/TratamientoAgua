@@ -6,7 +6,7 @@ library(hms)
 
 # Lectura de la base de datos
 
-base <- read_excel("data/Metabase.xlsx", sheet = "Datos")
+base <- read_excel("data/Metabase.xlsx", sheet = "Datos", range = "A1:GG93", na = "-1")
 view(base)
 
 # Selección de Columnas para el estudio
@@ -39,7 +39,6 @@ base <- base %>% mutate(
   ubi_muestra = case_when(
     ubi_muestra == "1" ~ "Superficie",
     ubi_muestra == "2" ~ "Fondo",
-    ubi_muestra == "-1" ~ NA,
     TRUE ~ NA
   ),
   cuerpo = case_when(
@@ -49,7 +48,6 @@ base <- base %>% mutate(
   ),
   fecha = case_when(
     str_detect(fecha, "^99/99") ~ NA,
-    str_detect(fecha, "-1") ~ NA,
     fecha == "02dec2019" ~ "02/12/2019",
     fecha == "02nov2019" ~ "02/11/2019",
     fecha == "11feb2019" ~ "11/02/2019",
@@ -58,21 +56,11 @@ base <- base %>% mutate(
   fecharecolectaf = case_when(
     str_detect(fecharecolectaf, "^99/99") ~ NA,
     str_detect(fecharecolectaf, "00/00/00") ~ NA,
-    str_detect(fecharecolectaf, "-1") ~ NA,
-    TRUE ~ as.character(fecharecolectaf) 
-  ),
-  fecharecolectaf = case_when(
-    str_detect(fecharecolectaf, "-1") ~ NA,
     TRUE ~ as.character(fecharecolectaf) 
   ),
   fecharecolectaj = case_when(
     str_detect(fecharecolectaj, "^99/99") ~ NA,
     str_detect(fecharecolectaj, "00/00/00") ~ NA,
-    str_detect(fecharecolectaj, "-1") ~ NA,
-    TRUE ~ as.character(fecharecolectaj) 
-  ),
-  fecharecolectaj = case_when(
-    str_detect(fecharecolectaj, "-1") ~ NA,
     TRUE ~ as.character(fecharecolectaj) 
   )
 ) %>% 
@@ -83,6 +71,8 @@ base <- base %>% mutate(
 
 
 # Asignación de tipo de columna
+
+glimpse(base)
 
 base <- base %>%
   mutate(across(
@@ -105,46 +95,48 @@ base <- base %>% mutate(across(
     as.factor
 ))
 
-
-# Asignación de NA's por columna
-
-base <- base %>% mutate(
-  across(c(
-    latitudf, latitudj, longitudf, longitudj,
-    profundidad, salinidad, oxigeno, solid_dis, conduc, resist, presion, sat_oxigen,
-    tempaguaf, tempairef, colifecalf, ecolif, enterococof,
-    tempaguaj, tempairej, colifecalj, ecolij, enterococoj,
-    ph, fosfatos, silicatos, amonio, nitritos, nitratos, chla_agua, faopigmentos, matsuspension, 
-    alcali_total, dureza, carbonatos,
-    zinc, cobre, plomo, cadmio, arsenico, manganeso, ca2, mg2, na, k, cl, SO42, 
-    dbof, dboj, dqof, dqoj
-  ), 
-  ~na_if(., -1))
-)
-
-
-base$dbof <- na_if(base$dqoj, 999999)
-base$dbof <- na_if(base$dqof, 888888)
-base$dbof <- na_if(base$dboj, 999999)
-base$dbof <- na_if(base$dbof, 0)
-base$dbof <- na_if(base$dbof, 888888.0)
-base$enterococof <- na_if(base$enterococof, 0)
-base$enterococof <- na_if(base$enterococoj, 0)
-base$latitudf <- na_if(base$latitudf, 999999)
-base$latitudj <- na_if(base$latitudj, 999999)
-base$longitudf <- na_if(base$longitudf, 999999)
-base$longitudj <- na_if(base$longitudj, 999999)
-base$tempaguaf <- na_if(base$tempaguaf, 999999)
-base$tempaguaj <- na_if(base$tempaguaj, 999999)
-base$tempairef <- na_if(base$tempairef, 999999)
-base$tempairej <- na_if(base$tempairej, 999999)
-
 base$oxigeno <- round(base$oxigeno, 2)
 
-# Borrar filas sin sitio
+# Borrar filas sin sitio, cuerpo, ubi_muestra, latitudj, latitudf, longitudj y longitudf
 
 base <- base %>% 
-  filter(!is.na(sitio))
+  mutate(latitud = coalesce(latitudf, latitudj))
+
+base <- base %>% 
+  mutate(longitud = coalesce(longitudf, longitudj))
+
+base <- base %>% 
+  select(-latitudf) %>% 
+  select(-latitudj) %>% 
+  select(-longitudj) %>% 
+  select(-longitudf)
+
+base <- base %>% 
+  filter(!is.na(sitio)) %>% 
+  filter(!is.na(ubi_muestra) | !is.na(cuerpo)) %>% 
+  filter(!is.na(latitud) | !is.na(longitud)) 
+
+
+# Arreglo de la columna de fecha
+
+base$fecharecolectaf <- ifelse(
+  is.na(base$fecharecolectaf) & format(base$fecha, "%m") == "02",
+  base$fecha, base$fecharecolectaf
+)
+
+base$fecharecolectaf <- as.Date(base$fecharecolectaf)
+
+## Imputación de fechas
+
+set.seed(3736)
+
+rango_feb <- seq(as.Date("2019-02-11"), as.Date("2019-02-19"), by = "day")
+rango_jul <- seq(as.Date("2019-07-22"), as.Date("2019-08-04"), by = "day")
+
+base$fecharecolectaf[is.na(base$fecharecolectaf)] <- sample(rango_feb, sum(is.na(base$fecharecolectaf)), replace = TRUE)
+base$fecharecolectaj[is.na(base$fecharecolectaj)] <- sample(rango_jul, sum(is.na(base$fecharecolectaj)), replace = TRUE)
+
+base <- base %>% select(-fecha)
 
 # Eliminación de columnas
 
@@ -167,14 +159,14 @@ resumen_na_por_columna <- data.frame(resumen_na_por_columna)
 
 view(resumen_na_por_columna)
 
-cols_mas_50_na <- resumen_na_por_columna %>% 
-  filter(porcentaje_na > 50) %>%
+cols_mas_70_na <- resumen_na_por_columna %>% 
+  filter(porcentaje_na > 70) %>%
   pull(columna)
 
 
-base <- base %>% select(-all_of(cols_mas_50_na))
+base <- base %>% select(-all_of(cols_mas_70_na))
 
-### Esto da sobre la fila
+# Eliminación de filas
 
 resumen_na_por_filas <- base %>%
   mutate(

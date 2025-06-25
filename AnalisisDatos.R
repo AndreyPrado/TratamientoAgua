@@ -163,7 +163,7 @@ print(graf_10)
 
 variable_mapa <- "dqof"
 
-datos_mapa <- datos_mapa %>%
+datos_mapa <- base %>%
   mutate(
     valor = .data[[variable_mapa]],
     rango_auto = cut(
