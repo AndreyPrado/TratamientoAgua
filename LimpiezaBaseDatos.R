@@ -64,8 +64,22 @@ base <- base %>% mutate(
   fecharecolectaf = case_when(
     str_detect(fecharecolectaf, "-1") ~ NA,
     TRUE ~ as.character(fecharecolectaf) 
+  ),
+  fecharecolectaj = case_when(
+    str_detect(fecharecolectaj, "^99/99") ~ NA,
+    str_detect(fecharecolectaj, "00/00/00") ~ NA,
+    str_detect(fecharecolectaj, "-1") ~ NA,
+    TRUE ~ as.character(fecharecolectaj) 
+  ),
+  fecharecolectaj = case_when(
+    str_detect(fecharecolectaj, "-1") ~ NA,
+    TRUE ~ as.character(fecharecolectaj) 
   )
-)
+) %>% 
+  mutate(fecha = mdy(fecha),
+         fecharecolectaj = mdy(fecharecolectaj),
+         fecharecolectaf = mdy(fecharecolectaf))
+
 
 
 # Asignación de tipo de columna
@@ -91,23 +105,9 @@ base <- base %>% mutate(across(
     as.factor
 ))
 
-base$fecha
-
-
-base <- base %>%
-  mutate(
-    # Convertir fechas en formato dd/mm/aaaa
-    across(c(fecharecolectaf, fecharecolectaj),
-           ~ as.Date(., format = "%d/%m/%Y")),
-    
-    # Opcional: Forzar NA para fechas inválidas (ej: meses >12)
-    across(c(fecharecolectaf, fecharecolectaj),
-           ~ ifelse(is.na(as.Date(., format = "%d/%m/%Y")), 
-                    NA, 
-                    as.Date(., format = "%d/%m/%Y")))
-  )
 
 # Asignación de NA's por columna
+
 base <- base %>% mutate(
   across(c(
     latitudf, latitudj, longitudf, longitudj,
@@ -119,10 +119,32 @@ base <- base %>% mutate(
     zinc, cobre, plomo, cadmio, arsenico, manganeso, ca2, mg2, na, k, cl, SO42, 
     dbof, dboj, dqof, dqoj
   ), 
-  ~na_if(., 1))
+  ~na_if(., -1))
 )
 
 
+base$dbof <- na_if(base$dqoj, 999999)
+base$dbof <- na_if(base$dqof, 888888)
+base$dbof <- na_if(base$dboj, 999999)
+base$dbof <- na_if(base$dbof, 0)
+base$dbof <- na_if(base$dbof, 888888.0)
+base$enterococof <- na_if(base$enterococof, 0)
+base$enterococof <- na_if(base$enterococoj, 0)
+base$latitudf <- na_if(base$latitudf, 999999)
+base$latitudj <- na_if(base$latitudj, 999999)
+base$longitudf <- na_if(base$longitudf, 999999)
+base$longitudj <- na_if(base$longitudj, 999999)
+base$tempaguaf <- na_if(base$tempaguaf, 999999)
+base$tempaguaj <- na_if(base$tempaguaj, 999999)
+base$tempairef <- na_if(base$tempairef, 999999)
+base$tempairej <- na_if(base$tempairej, 999999)
+
+base$oxigeno <- round(base$oxigeno, 2)
+
+# Borrar filas sin sitio
+
+base <- base %>% 
+  filter(!is.na(sitio))
 
 # Eliminación de columnas
 
@@ -145,12 +167,12 @@ resumen_na_por_columna <- data.frame(resumen_na_por_columna)
 
 view(resumen_na_por_columna)
 
-cols_mas_80_na <- resumen_na %>% 
-  filter(porcentaje_na > 80) %>%
+cols_mas_50_na <- resumen_na_por_columna %>% 
+  filter(porcentaje_na > 50) %>%
   pull(columna)
 
 
-base <- base %>% select(-all_of(cols_mas_80_na))
+base <- base %>% select(-all_of(cols_mas_50_na))
 
 ### Esto da sobre la fila
 
