@@ -4,8 +4,8 @@ author: "Andrey Prado"
 format: html
 ---
 
-```{r paquetes, include = FALSE}
-
+```{r paquetes}
+#| include = FALSE
 library(tidyverse)
 library(readxl)
 library(stats)
