@@ -4,8 +4,8 @@ author: "Andrey Prado"
 format: html
 ---
 
-```{r paquetes, include = FALSE}
-
+```{r paquetes}
+#| include = FALSE
 library(tidyverse)
 library(readxl)
 library(stats)
@@ -53,6 +53,9 @@ Primeramente se analizarán las distribuciones de los datos que tienen una obser
 Como se mencionó anteriormente se asumirá que las variables son pareadas sin embargo no se puede asumir que la distribución de estas variables es Normal, por ello se aplicará la prueba de Wilcoxon pareada.
 :::
 ```{r wilcoxon-dbo}
+#| message: false
+#| warning: false
+#| echo: true
 wilcox.test(base$dbof, base$dboj, paired = TRUE)
 ```
 
