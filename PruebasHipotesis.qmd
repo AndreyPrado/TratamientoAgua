@@ -52,8 +52,20 @@ Primeramente se analizarán las distribuciones de los datos que tienen una obser
 
 Como se mencionó anteriormente se asumirá que las variables son pareadas sin embargo no se puede asumir que la distribución de estas variables es Normal, por ello se aplicará la prueba de Wilcoxon pareada.
 :::
-
 ```{r wilcoxon-dbo}
 wilcox.test(base$dbof, base$dboj, paired = TRUE)
 ```
-Al haberse obtenido un p-value de $0.01731$ se rechaza la hipótesis nula y se concluye que hay diferencias significativas entre la distribución del DBO
+
+Al haberse obtenido un p-value de $0.01731$ se rechaza la hipótesis nula y se concluye que hay diferencias significativas entre la distribución del DBO según ambas fechas, esto tiene sentido al ser épocas distintas. Se sabe que en Costa Rica en febrero se encuentra la época más seca correspondiente al verano mientras que en julio comienza la época lluviosa.
+
+::: {.callout-tip}
+## Prueba 2 : Comparación en la distribución de la Demanda Química de Oxígeno (DQO)
+
+- $H_0$ : No existe una diferencia entre la distribución de la DQO entre las recolecciones de datos de Febrero y Julio.
+- $H_1$ : Si hay una diferencia significativa entre las distribuciones de DQO de Febrero y Julio.
+:::
+
+```{r}
+wilcox.test(base$dqof, base$dqoj, paired = TRUE)
+```
+En este caso al ser el p-value mayor a $0.05$ no hay suficiente evidencia para rechazar la hipótesis nula por lo que no se puede concluir que la distribución de la Demanda Química del Oxígeno para los meses de Febrero y Julio son distintos.
