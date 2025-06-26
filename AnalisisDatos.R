@@ -3,6 +3,7 @@ library(viridis)
 library(hms)
 library(leaflet)
 library(ggcorrplot)
+library(skimr)
 
 # Cargar la base limpia
 
@@ -19,9 +20,13 @@ str(base)
 base$sitio <- as.factor(base$sitio)
 base$cuerpo <- as.factor(base$cuerpo)
 base$ubi_muestra <- as.factor(base$ubi_muestra)
-base$analisis_agua1 <- as.factor(base$analisis_agua1)
-base$fecha <- as.Date(base$fecha)
-base$hora <- as_hms(base$hora)
+# base$analisis_agua1 <- as.factor(base$analisis_agua1)
+# base$fecha <- as.Date(base$fecha)
+# base$hora <- as_hms(base$hora)
+base <- base %>% mutate(across(
+  c(sitio, ubi_muestra, cuerpo),
+  as.factor
+))
 
 summary(base)
 
@@ -30,7 +35,7 @@ summary(base)
 table(base$sitio)
 table(base$ubi_muestra)
 table(base$cuerpo)
-table(base$analisis_agua1)
+# table(base$analisis_agua1)
 
 # Gráficos
 
@@ -148,7 +153,7 @@ graf_9 <- base %>%
 print(graf_9)
 
 graf_10 <- base %>% 
-  ggplot(aes(x=fecha, y = dbof, color = sitio))+
+  ggplot(aes(x=fecharecolectaf, y = dbof, color = sitio))+
   geom_line(size = 1) + 
   geom_point(size = 2) + 
   scale_color_viridis_d() +
@@ -213,6 +218,12 @@ ggcorrplot(matriz, method = "square", type = "lower",
            colors = c("#6D9EC1", "white", "#E46726"),
            title = "Mapa de Calor de Correlaciones para variables numéricas",
            ggtheme = ggplot2::theme_minimal())
+
+# Tabla descriptiva de las variables de la base
+
+estructura_df <- skim(base)
+
+
 
 ## Datos a analizar
 

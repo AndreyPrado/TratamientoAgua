@@ -1,0 +1,10 @@
+---
+title: "Graficos"
+author: "Diego Vega Víquez"
+format: pdf
+---
+
+```{r}
+source("AnalisisDatos.R")
+```
+
