@@ -1,0 +1,59 @@
+---
+title: "Pruebas de Hipótesis"
+author: "Andrey Prado"
+format: html
+---
+
+```{r paquetes, include = FALSE}
+
+library(tidyverse)
+library(readxl)
+library(stats)
+
+base <- read_excel("data/base_agua_limpia.xlsx")
+```
+
+### Pruebas de Hipótesis que se utilizarán
+
+El objetivo de la aplicación de las pruebas en el presente trabajo es el de verificar la independencia de las variables y la relación entre las observaciones de Febrero y Julio para justificar la posterior elección del modelo, entre las opciones principales están XGBoost, LGBM, Modelo Lasso, Regresión Lineal, entre otras.
+
+::: {.callout-note}
+## Prueba de Wilcoxon pareada
+
+Esta prueba determina si dos grupos dependientes difieren en distribución entre sí. Dicha prueba utiliza los rangos de los grupos en lugar de los valores medios. A diferencia de la prueba t pareada, esta es una prueba no paramétrica por lo tanto en cuanto se dejen de cumplir las condiciones de uso de la prueba t (normalidad de los datos) como en este caso se utiliza esta prueba. Los supuestos que se deben cumplir para la realización de la prueba son:
+- Medición Repetida, es decir que una característica se mida en dos momentos distintos
+- Parejas, es decir los datos no necesariamente deben ser la misma observación si no que pertenezcan a los dos grupos que se están analizando.
+:::
+
+
+::: {.callout-note}
+## Prueba Chi-Cuadrado de Independencia (Variables Categóricas)
+
+Es una prueba de hipótesis que se basa en variables categóricas para medir si existe una relación entre estas, de existir se recomienda combinar con la prueba V de Cramer para medir la fuerza de esta relación, se pide que las variables tengan una escala, ya sea ordinal o nominal. 
+:::
+
+::: {.callout-note}
+## Correlación de Pearson (Variables Cuantitativas)
+
+Es utilizada para medir la correlación entre variables, dicha prueba muestra el valor de la fuerza de correlación en un rango de 0 a 1, siendo 0 nula correlación y 1 una correlación perfecta. Además mide la dirección de la correlación dado el signo.
+
+:::
+
+### Variables de Febrero y Julio
+
+Primeramente se analizarán las distribuciones de los datos que tienen una observación en Febrero y una en Julio, para esto se harán pruebas pareadas asumiendo emparejamiento, esto debido a que la observación comparte ubicación. 
+
+
+::: {.callout-tip}
+## Prueba 1 : Comparación en la distribución de la Demanda Biológica de Oxígeno (DBO)
+
+- $H_0$ : No existe una diferencia entre la distribución de la DBO entre las recolecciones de datos de Febrero y Julio.
+- $H_1$ : Si hay una diferencia significativa entre las distribuciones de DBO de Febrero y Julio.
+
+Como se mencionó anteriormente se asumirá que las variables son pareadas sin embargo no se puede asumir que la distribución de estas variables es Normal, por ello se aplicará la prueba de Wilcoxon pareada.
+:::
+
+```{r wilcoxon-dbo}
+wilcox.test(base$dbof, base$dboj, paired = TRUE)
+```
+Al haberse obtenido un p-value de $0.01731$ se rechaza la hipótesis nula y se concluye que hay diferencias significativas entre la distribución del DBO
