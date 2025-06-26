@@ -54,6 +54,9 @@ Como se mencionó anteriormente se asumirá que las variables son pareadas sin e
 :::
 
 ```{r wilcoxon-dbo}
+#| message: false
+#| warning: false
+#| echo: true
 wilcox.test(base$dbof, base$dboj, paired = TRUE)
 ```
 Al haberse obtenido un p-value de $0.01731$ se rechaza la hipótesis nula y se concluye que hay diferencias significativas entre la distribución del DBO
