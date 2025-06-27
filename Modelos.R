@@ -6,14 +6,24 @@ library(Metrics)
 # Cargar y preparar los datos
 
 base <- read_excel("data/base_agua_limpia.xlsx")
-base <- base[!is.na(base$dqoj), ]
+base <- base[!is.na(base$dqof), ]
 
 # Crear partición de datos 
 
 set.seed(123)
-indice_entrenamiento <- createDataPartition(base$dqoj, p = 0.65, list = FALSE)
+indice_entrenamiento <- createDataPartition(base$dqof, p = 0.65, list = FALSE)
 datos_train <- base[indice_entrenamiento, ]
 datos_prueba <- base[-indice_entrenamiento, ]
+
+# Obtener etiquetas
+
+train_y <- datos_train$dqof
+test_y <- datos_prueba$dqof
+
+#Elimina el target de los datos
+
+datos_train <- datos_train[, !(names(datos_train) %in% c("dqof"))]
+datos_prueba <- datos_prueba[, !(names(datos_prueba) %in% c("dqof"))]
 
 # Crear transformación dummy usando los datos de entrenamiento
 
@@ -38,11 +48,6 @@ if(length(missing_cols) > 0) {
 train_x <- as.matrix(train_x)
 test_x <- as.matrix(test_x)
 
-# Obtener etiquetas
-
-train_y <- datos_train$dqoj
-test_y <- datos_prueba$dqoj
-
 # Crear matrices DMatrix
 
 dtrain <- xgb.DMatrix(data = train_x, label = train_y)
@@ -54,13 +59,27 @@ params <- list(
   objective = "reg:squarederror",
   eval_metric = "rmse",
   eta = 0.01,
-  max_depth = 4,
-  lambda = 1,
+  max_depth = 10,
+  lambda = 2,
   alpha = 0.1,
   subsample = 0.7,
   colsample_bytree = 0.7
 )
 
+
+params <- list(
+  objective = "reg:squarederror",
+  eval_metric = "rmse",
+  eta = 0.1,               # Tasa de aprendizaje más común
+  max_depth = 6,           # Profundidad moderada
+  min_child_weight = 3,    # Controla el sobreajuste
+  gamma = 0,               # Regularización mínima para empezar
+  subsample = 0.8,         # Muestra el 80% de datos por árbol
+  colsample_bytree = 0.8,  # Usa 80% de features por árbol
+  lambda = 1,              # Regularización L2 moderada
+  alpha = 0,               # Regularización L1 inicialmente desactivada
+  nthread = 4              # Usa 4 núcleos del CPU
+)
 
 modelo_xg <- xgb.train(
   params = params,
@@ -83,14 +102,17 @@ print(importance)
 # Ajuste de hiperparámetros
 
 ctrl <- trainControl(method = "cv", number = 5)
-grid <- expand.grid(
-  nrounds = 100,
-  eta = c(0.01, 0.1, 0.3),
-  max_depth = c(3, 6, 9),
-  gamma = 0,
-  colsample_bytree = 0.8,
-  min_child_weight = 1,
-  subsample = 0.8
+
+grid_fino <- expand.grid(
+  nrounds = c(800, 1000, 1200),
+  eta = c(0.03, 0.05, 0.07),
+  max_depth = c(5, 6, 7),
+  gamma = c(0.05, 0.1, 0.15),
+  min_child_weight = c(2, 3, 4),
+  subsample = c(0.75, 0.8, 0.85),
+  colsample_bytree = c(0.75, 0.8, 0.85),
+  lambda = c(0.8, 1, 1.2),
+  alpha = c(0, 0.05, 0.1)
 )
 
 modelo_ajustado <- train(
@@ -139,7 +161,7 @@ ggplot(resultados, aes(x = real, y = prediccion)) +
   geom_abline(slope = 1, intercept = 0, color = "red", linetype = "dashed", linewidth = 1) +
   labs(
     title = "Valores Reales vs. Predicciones (Test)",
-    x = "Valor Real (DQOJ)",
+    x = "Valor Real (dqof)",
     y = "Valor Predicho"
   ) +
   theme_minimal() +
@@ -167,7 +189,7 @@ ggplot(resultados) +
   scale_fill_manual(values = c("real" = "#009E73", "prediccion" = "#E69F00")) +
   labs(
     title = "Distribución: Valores Reales vs. Predichos",
-    x = "DQOJ",
+    x = "dqof",
     y = "Densidad",
     fill = ""
   ) +
@@ -185,3 +207,9 @@ ggplot(resultados, aes(x = real, y = prediccion)) +
   ) +
   labs(title = "Ajuste del Modelo XGBoost") +
   theme_light()
+
+importance <- xgb.importance(model = modelo_ajustado)
+print(importance)
+
+
+

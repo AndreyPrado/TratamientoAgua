@@ -1,7 +1,6 @@
 library(readxl)
 library(openxlsx)
 library(tidyverse)
-library(lubridate)
 library(hms)
 
 # Lectura de la base de datos
@@ -128,7 +127,6 @@ base <- base %>%
   filter(!is.na(ubi_muestra) | !is.na(cuerpo)) %>% 
   filter(!is.na(latitud) | !is.na(longitud)) 
 
-
 # Arreglo de la columna de fecha
 
 base$fecharecolectaf <- ifelse(
@@ -166,8 +164,8 @@ max_hora_feb <- as.numeric(max(base$horarecolectaf, na.rm = TRUE))
 min_hora_jul <- as.numeric(min(base$horarecolectaj, na.rm = TRUE))
 max_hora_jul <- as.numeric(max(base$horarecolectaj, na.rm = TRUE))
 
-rango_hora_feb <- seq(from = min_hora_feb, to = max_hora_feb, by = 60)
-rango_hora_jul <- seq(from = min_hora_jul, to = max_hora_jul, by = 60)
+rango_hora_feb <- seq(from = min_hora_feb, to = max_hora_feb, by = 3600)
+rango_hora_jul <- seq(from = min_hora_jul, to = max_hora_jul, by = 3600)
 
 rango_hora_feb <- as_hms(rango_hora_feb)
 rango_hora_jul <- as_hms(rango_hora_jul)
@@ -225,7 +223,35 @@ resumen_na_por_filas <- data.frame(resumen_na_por_filas)
 #  filter(porcentaje_na < 85) %>%  # solo filas con menos de 85% NA
 #  select(-porcentaje_na)
 
-# Guardar csv con la base limpia
+# Datos de temperatura en febrero y julio
+
+analisis_temp <- base %>% 
+  select(latitud, longitud, sitio, fecharecolectaf, horarecolectaf, fecharecolectaj, horarecolectaj, tempairej)
+
+analisis_temp <- analisis_temp %>% group_by(latitud, longitud)
+
+view(analisis_temp)
+
+# Guardar excel con la base limpia
 
 write.xlsx(base, "data/base_agua_limpia.xlsx", na= "NA")
 
+# Separar las bases en variables de febrero y julio
+
+# colnames(base_limp)
+
+base_feb <- base %>% 
+  select(latitud, longitud, sitio, ubi_muestra, cuerpo, fecharecolectaf, horarecolectaf, profundidad, salinidad, oxigeno, sat_oxigen,precipitacionf,
+         tempairef, ph, fosfatos, silicatos, amonio, nitritos, nitratos, chla_agua, faopigmentos, matsuspension, alcali_total, dureza,
+         carbonatos, zinc, cobre, ca2, mg2, na, k, cl, SO42, dbof, dqof)
+
+base_jul <- base %>% 
+  select(latitud, longitud, sitio, ubi_muestra, cuerpo, fecharecolectaj, horarecolectaj, profundidad, salinidad, oxigeno, sat_oxigen,precipitacionj,
+         tempaguaj, colifecalj, ecolij, enterococoj, tempairej, ph, fosfatos, silicatos, amonio, nitritos,
+          nitratos, chla_agua, faopigmentos, matsuspension, alcali_total, dureza,
+         carbonatos, zinc, cobre, ca2, mg2, na, k, cl, SO42, dboj, dqoj)
+
+# Guardar excel de estas bases
+
+write.xlsx(base_feb, "data/base_agua_limpia_febrero.xlsx", na = "NA")
+write.xlsx(base_jul, "data/base_agua_limpia_julio.xlsx", na = "NA")
