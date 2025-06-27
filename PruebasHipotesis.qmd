@@ -71,4 +71,12 @@ Al haberse obtenido un p-value de $0.01731$ se rechaza la hipótesis nula y se c
 ```{r}
 wilcox.test(base$dqof, base$dqoj, paired = TRUE)
 ```
-En este caso al ser el p-value mayor a $0.05$ no hay suficiente evidencia para rechazar la hipótesis nula por lo que no se puede concluir que la distribución de la Demanda Química del Oxígeno para los meses de Febrero y Julio son distintos.
+En este caso al ser el p-value mayor a $0.05$ no hay suficiente evidencia para rechazar la hipótesis nula por lo que no se puede concluir que la distribución de la Demanda Química del Oxígeno para los meses de Febrero y Julio son distintos. Dado que este valor no dió como se esperaba se realizará la correlación de pearson para ver si existe relación entre ellas.
+
+```{r}
+cor.test(base$dqof, base$dqoj, method = "pearson")
+```
+Este resultado indica que existe cierta relación lineal entre estas variables. (Falta investigar en los antecedentes pero se que en el modelo de caudales se debían considerar el rezago de 1 a 6 meses además de 12 meses para las variables por el año hidrológico, tal vez sea una razón por la que existe una correlación entre estas variables).
+
+
+

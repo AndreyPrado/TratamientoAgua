@@ -16,7 +16,13 @@ base <- read_excel("data/Metabase.xlsx",
                           '99:99',
                           '99:99:99',
                           '888888',
-                          '9999'))
+                          '9999',
+                          '99/99/100',
+                          '99/99/102',
+                          '99/99/103',
+                          '99/99/105',
+                          '99/99/106'
+                          ))
 # view(base)
 
 # Selección de Columnas para el estudio
@@ -26,7 +32,7 @@ base <- base %>%
     # Variables Generales 
     sitio, ubi_muestra = ubicación, cuerpo, latitudf, latitudj, longitudf, longitudj,
     # Variables del muestreo
-    fecha, fecharecolectaf, fecharecolectaj,
+    fecha, fecharecolectaf, fecharecolectaj, hora, horarecolectaf, horarecolectaj,
     # Variables del sitio
     profundidad, salinidad, oxigeno, solid_dis = TDS, conduc, resist, presion, sat_oxigen,
     # Variables del agua y residuos en Febrero
@@ -44,6 +50,13 @@ base <- base %>%
 
 
 # Categóricas
+
+base$hora <- ifelse(is.na(base$hora), NA, paste0(base$hora, ":00"))
+base$hora <- as_hms(base$hora)
+base$horarecolectaf <- ifelse(is.na(base$horarecolectaf), NA, paste0(base$horarecolectaf, ":00"))
+base$horarecolectaf <- as_hms(base$horarecolectaf)
+base$horarecolectaj <- ifelse(is.na(base$horarecolectaj), NA, paste0(base$horarecolectaj, ":00"))
+base$horarecolectaj <- as_hms(base$horarecolectaj)
 
 base <- base %>% mutate(
   ubi_muestra = case_when(
@@ -67,9 +80,11 @@ base <- base %>% mutate(
          fecharecolectaj = mdy(fecharecolectaj),
          fecharecolectaf = mdy(fecharecolectaf))
 
+
+
 # Asignación de tipo de columna
 
-glimpse(base)
+# glimpse(base)
 
 base <- base %>%
   mutate(across(
@@ -123,6 +138,15 @@ base$fecharecolectaf <- ifelse(
 
 base$fecharecolectaf <- as.Date(base$fecharecolectaf)
 
+# Arreglo de la columna de hora
+
+base$horarecolectaf <- ifelse(
+  is.na(base$horarecolectaf) & format(base$fecha, "%m") == "02",
+  base$hora, base$horarecolectaf
+)
+
+base$horarecolectaf <- as_hms(base$horarecolectaf)
+
 ## Imputación de fechas
 
 set.seed(3736)
@@ -134,6 +158,24 @@ base$fecharecolectaf[is.na(base$fecharecolectaf)] <- sample(rango_feb, sum(is.na
 base$fecharecolectaj[is.na(base$fecharecolectaj)] <- sample(rango_jul, sum(is.na(base$fecharecolectaj)), replace = TRUE)
 
 base <- base %>% select(-fecha)
+
+# Imputación de horas
+
+min_hora_feb <- as.numeric(min(base$horarecolectaf, na.rm = TRUE))
+max_hora_feb <- as.numeric(max(base$horarecolectaf, na.rm = TRUE))
+min_hora_jul <- as.numeric(min(base$horarecolectaj, na.rm = TRUE))
+max_hora_jul <- as.numeric(max(base$horarecolectaj, na.rm = TRUE))
+
+rango_hora_feb <- seq(from = min_hora_feb, to = max_hora_feb, by = 60)
+rango_hora_jul <- seq(from = min_hora_jul, to = max_hora_jul, by = 60)
+
+rango_hora_feb <- as_hms(rango_hora_feb)
+rango_hora_jul <- as_hms(rango_hora_jul)
+
+base$horarecolectaf[is.na(base$horarecolectaf)] <- sample(rango_hora_feb, sum(is.na(base$horarecolectaf)), replace = TRUE)
+base$horarecolectaj[is.na(base$horarecolectaj)] <- sample(rango_hora_jul, sum(is.na(base$horarecolectaj)), replace = TRUE)
+
+base <- base %>% select(-hora)
 
 # Eliminación de columnas
 
@@ -187,4 +229,3 @@ resumen_na_por_filas <- data.frame(resumen_na_por_filas)
 
 write.xlsx(base, "data/base_agua_limpia.xlsx", na= "NA")
 
-view(base)

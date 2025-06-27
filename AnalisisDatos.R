@@ -10,7 +10,7 @@ library(skimr)
 # Cargar la base limpia
 
 base <- read_excel("data/base_agua_limpia.xlsx")
-# view(base)
+view(base)
 
 # Resumen general de la base de datos
 
@@ -46,7 +46,7 @@ table(base$cuerpo)
 graf_1 <- base %>% ggplot(aes(x=dbof))+
   geom_histogram(binwidth = 5, fill = viridis(1), color = "black", alpha= 0.8)+
   labs(title = "Distribución del DBOF (Demanda biológica de Oxígeno)",
-       x = "DBO (mg/L) Antes del Tratamiento",
+       x = "DBO (mg/L) Febrero",
        y = "Frecuencia") + 
   theme_minimal()
 
@@ -57,7 +57,7 @@ print(graf_1)
 graf_2 <- base %>% ggplot(aes(x=dboj))+
   geom_histogram(binwidth = 5, fill = viridis(1), color = "black", alpha= 0.8)+
   labs(title = "Distribución del DBOJ (Demanda biológica de Oxígeno)",
-       x = "DBO (mg/L) Posterior del Tratamiento",
+       x = "DBO (mg/L) Julio",
        y = "Frecuencia") + 
   theme_minimal()
 
@@ -69,7 +69,7 @@ graf_3 <- base %>%
   filter(!is.na(cuerpo)) %>% filter(dbof < 50) %>% ggplot(aes(x = cuerpo, y = dbof, fill = cuerpo))+
   geom_boxplot(alpha = 0.8)+
   scale_fill_viridis_d()+
-  labs(title = "DBO antes del tratamiento\n según el cuerpo de agua",
+  labs(title = "DBO de Febrero\n según el cuerpo de agua",
        x = "Cuerpo de agua",
        y = "DBO (mg/L)")+
   theme_minimal(base_size = 15)+
@@ -83,7 +83,7 @@ graf_4 <- base %>%
   filter(!is.na(cuerpo)) %>% filter(dboj < 50) %>% ggplot(aes(x = cuerpo, y = dboj, fill = cuerpo))+
   geom_boxplot(alpha = 0.8)+
   scale_fill_viridis_d()+
-  labs(title = "DBO posterior del tratamiento\n según el cuerpo de agua",
+  labs(title = "DBO de Julio\n según el cuerpo de agua",
        x = "Cuerpo de agua",
        y = "DBO (mg/L)")+
   theme_minimal(base_size = 15)+
@@ -95,8 +95,8 @@ print(graf_4)
 
 graf_5 <- base %>% ggplot(aes(x=dqof))+
   geom_histogram(binwidth = 65, fill = viridis(1), color = "black", alpha= 0.8)+
-  labs(title = "Distribución del DQOF (Demanda química de Oxígeno)",
-       x = "DQO (mg/L) Antes del Tratamiento",
+  labs(title = "Distribución del DQO (Demanda química de Oxígeno)",
+       x = "DQO (mg/L) Febrero",
        y = "Frecuencia") + 
   theme_minimal()
 
@@ -105,9 +105,9 @@ print(graf_5)
 ### Distribución de la demanda biológica de oxígeno posterior al tratamiento
 
 graf_6 <- base %>% ggplot(aes(x=dqoj))+
-  geom_histogram(binwidth = 150, fill = viridis(1), color = "black", alpha= 0.8)+
-  labs(title = "Distribución del DQOJ (Demanda química de Oxígeno)",
-       x = "DBO (mg/L) Posterior del Tratamiento",
+  geom_histogram(binwidth = 300, fill = viridis(1), color = "black", alpha= 0.8)+
+  labs(title = "Distribución del DQO (Demanda química de Oxígeno)",
+       x = "DBO (mg/L) Julio",
        y = "Frecuencia") + 
   theme_minimal()
 
@@ -168,7 +168,7 @@ print(graf_10)
 
 ### Gráfico interactivo de mapa
 
-variable_mapa <- "dqof"
+variable_mapa <- "dbof"
 
 datos_mapa <- base %>%
   mutate(
