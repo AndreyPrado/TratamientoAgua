@@ -1,21 +1,95 @@
 ---
 title: "Pruebas de Hipótesis"
-author: "Andrey Prado"
+author: Andrey Prado and Diego Vega
 format: html
 ---
 
 ```{r paquetes}
-#| include = FALSE
+#| code-fold: true
+#| message: false
+#| warning: false
+#| echo: false
+
 library(tidyverse)
 library(readxl)
 library(stats)
 
 base <- read_excel("data/base_agua_limpia.xlsx")
+
 ```
+
 
 ### Pruebas de Hipótesis que se utilizarán
 
 El objetivo de la aplicación de las pruebas en el presente trabajo es el de verificar la independencia de las variables y la relación entre las observaciones de Febrero y Julio para justificar la posterior elección del modelo, entre las opciones principales están XGBoost, LGBM, Modelo Lasso, Regresión Lineal, entre otras.
+
+::: {.callout-note}
+
+### Prueba de Shapiro-Wilk 
+
+La prueba de Shapiro-Wilk es una prueba estadística utilizada para determinar si una muestra de datos sigue una distribución normal. Es una prueba de bondad de ajuste que evalúa qué tan cerca se ajustan los datos de la muestra a una distribución normal. La hipótesis nula de la prueba es que la muestra proviene de una población distribuida normalmente. 
+
+:::
+
+```{r Shapiro-Wilk}
+#| code-fold: true
+#| message: false
+#| warning: false
+
+# Seleccionar solo variables numéricas
+vars_numericas <- base[, sapply(base, is.numeric)]
+
+# Inicializar listas para resultados
+nombres <- c()
+p_values <- c()
+es_normal <- c()
+
+# Aplicar prueba de Shapiro-Wilk a cada variable numérica
+for (nombre in names(vars_numericas)) {
+  variable <- vars_numericas[[nombre]]
+  variable <- na.omit(variable)  # Omitir NA
+  
+  # Verificar condiciones para aplicar la prueba
+  if (length(variable) >= 3 && length(unique(variable)) > 1) {
+    prueba <- shapiro.test(variable)
+    nombres <- c(nombres, nombre)
+    p_values <- c(p_values, prueba$p.value)
+    es_normal <- c(es_normal, prueba$p.value > 0.05)
+  } else {
+    # Registrar variables que no cumplen condiciones
+    nombres <- c(nombres, nombre)
+    p_values <- c(p_values, NA)
+    es_normal <- c(es_normal, NA)
+    
+    # Mensaje informativo
+    if (length(unique(variable)) == 1) {
+      message(paste("Variable", nombre, "tiene todos sus valores idénticos. Prueba omitida."))
+    } else if (length(variable) < 3) {
+      message(paste("Variable", nombre, "tiene menos de 3 observaciones. Prueba omitida."))
+    }
+  }
+}
+
+# Crear data frame resumen
+resumen_normalidad <- data.frame(
+  Variable = nombres,
+  p_value = round(p_values, 4),
+  Es_Normal = es_normal
+)
+
+# Imprimir
+kableExtra::kable(resumen_normalidad)
+```
+
+Este código realiza la prueba de normalidad de Shapiro-Wilk a todas las variables numéricas del conjunto de datos base_agua_limpia. Primero, se seleccionan únicamente las columnas numéricas y luego se aplica la prueba individualmente a cada una. Para cada variable:
+ - Si tiene al menos 3 observaciones sin valores perdidos y más de un valor único, se realiza la prueba de Shapiro-Wilk.
+ - Se registra el nombre de la variable, su valor p y si se considera que sigue una distribución normal (TRUE si p > 0.05, FALSE en caso contrario).
+ - Si una variable tiene menos de 3 datos o todos sus valores son idénticos, se omite la prueba y se muestra un mensaje informativo.
+
+Finalmente, los resultados se presentan en un data frame llamado resumen_normalidad, donde se listan todas las variables evaluadas junto con su valor p y un indicador lógico que señala si la distribución se considera normal bajo el nivel de significancia del 5%.
+
+El resultado muestra que solo dos variables (tempairef y tempairej) siguen una distribución normal, mientras que las demás no superan la prueba. Una variable (cobre) no pudo evaluarse por contener datos insuficientes o no adecuados.
+
 
 ::: {.callout-note}
 ## Prueba de Wilcoxon pareada
@@ -25,6 +99,69 @@ Esta prueba determina si dos grupos dependientes difieren en distribución entre
 - Parejas, es decir los datos no necesariamente deben ser la misma observación si no que pertenezcan a los dos grupos que se están analizando.
 :::
 
+```{r Wilcoxon}
+wilcox.test(base$dbof, base$dboj, paired = TRUE)
+wilcox.test(base$dqof, base$dqoj, paired = TRUE)
+wilcox.test(base$tempairef, base$tempairej, paired = TRUE)
+```
+
+```{r Wilcoxon pareada}
+#| code-fold: true
+#| message: false
+#| warning: false
+
+# Detectar variables con sufijos f y j
+nombres_f <- grep("f$", names(base), value = TRUE)
+nombres_j <- grep("j$", names(base), value = TRUE)
+
+# Encontrar nombres base en común
+pares_logicos <- intersect(sub("f$", "", nombres_f), sub("j$", "", nombres_j))
+
+# Ejecutar prueba de Wilcoxon para cada par
+resultados_wilcoxon <- lapply(pares_logicos, function(nombre_base) {
+  var_f <- paste0(nombre_base, "f")
+  var_j <- paste0(nombre_base, "j")
+  
+  # Verificar que ambas variables existan en el data frame
+  if (!(var_f %in% names(base)) || !(var_j %in% names(base))) return(NULL)
+  
+  x <- base[[var_f]]
+  y <- base[[var_j]]
+  
+  # Verificar que ambos sean numéricos
+  if (!is.numeric(x) || !is.numeric(y)) return(NULL)
+  
+  # Eliminar NA en ambos
+  completo <- complete.cases(x, y)
+  if (sum(completo) < 3) return(NULL)
+  
+  prueba <- wilcox.test(x[completo], y[completo], paired = TRUE)
+  
+  data.frame(
+    Par = paste(var_f, "vs", var_j),
+    p_value = round(prueba$p.value, 4),
+    estadistico = as.numeric(prueba$statistic)
+  )
+})
+
+# Filtrar resultados válidos y combinar
+resultados_wilcoxon <- do.call(rbind, resultados_wilcoxon)
+kableExtra::kable(resultados_wilcoxon)
+```
+
+Se realizaron pruebas de Wilcoxon para comparar distintas variables medidas en dos momentos o condiciones: aquellas con sufijo “f” y su correspondiente con sufijo “j”, lo cual permite evaluar si existen cambios significativos en la distribución de dichas variables. Esta prueba no asume normalidad y es adecuada para comparar muestras relacionadas (pareadas) cuando no se cumplen los supuestos de la prueba t.
+
+En primer lugar, se aplicó la prueba de Wilcoxon de manera individual para las siguientes variables:
+
+Para la variable DBO (Demanda Bioquímica de Oxígeno), se compararon los valores en los momentos “f” y “j”. El valor p obtenido fue de 0.0173, lo cual es menor al umbral de significancia de 0.05. Esto indica que existe una diferencia estadísticamente significativa en la distribución de la DBO entre los dos momentos, sugiriendo un posible cambio ambiental o de condiciones entre ambos periodos de observación.
+
+En contraste, al evaluar la DQO (Demanda Química de Oxígeno) en los mismos términos, el valor p fue de 0.1140, lo que no alcanza significancia estadística. Esto sugiere que no hay evidencia suficiente para afirmar que haya habido un cambio relevante en la distribución de esta variable entre los momentos “f” y “j”, y por tanto, se podría considerar que esta característica se ha mantenido estable.
+
+Algo similar se observó al analizar la temperatura del aire, comparando tempairef y tempairej, cuyo valor p fue de 0.5420, indicando con claridad la ausencia de diferencia significativa. Esta conclusión, además, se alinea con los resultados previos de normalidad para esta variable, donde se había determinado que ambas distribuciones eran compatibles con una distribución normal.
+
+El cuadro resumen generado automáticamente mediante un procedimiento sistemático confirma estas observaciones y añade información adicional. Por ejemplo, se encontró que la precipitación sí presenta una diferencia altamente significativa entre los periodos, con un valor p de 0.0000 y un estadístico de prueba de 0, lo que sugiere un cambio muy marcado. Esto contrasta con otras variables como tempairef vs tempairej y dqof vs dqoj, cuyos resultados no muestran diferencias significativas.
+
+En conjunto, estos resultados permiten concluir que algunas variables del sistema evaluado (como la DBO y la precipitación) presentan cambios significativos entre los dos momentos analizados, mientras que otras (como la DQO y la temperatura del aire) se mantienen relativamente estables. Estas diferencias pueden ser indicativas de variabilidad estacional, cambios ambientales o efectos de intervención, dependiendo del contexto específico del estudio.
 
 ::: {.callout-note}
 ## Prueba Chi-Cuadrado de Independencia (Variables Categóricas)
@@ -78,5 +215,70 @@ cor.test(base$dqof, base$dqoj, method = "pearson")
 ```
 Este resultado indica que existe cierta relación lineal entre estas variables. (Falta investigar en los antecedentes pero se que en el modelo de caudales se debían considerar el rezago de 1 a 6 meses además de 12 meses para las variables por el año hidrológico, tal vez sea una razón por la que existe una correlación entre estas variables).
 
+::: {.callout-tip}
+## Prueba 3: Correlación entre oxígeno disuelto y saturación de oxígeno
 
+ - $H_0$: No existe correlación entre el oxígeno disuelto y la saturación de oxígeno.
+ - $H_1$: Existe una correlación significativa entre el oxígeno disuelto y la saturación de oxígeno.
+:::
 
+Ambas son numéricas y relacionadas físicamente:
+```{r}
+cor.test(base$oxigeno, base$sat_oxigen, method = "spearman")
+```
+
+El coeficiente de correlación de Spearman fue $\rho = 0.8357$ con un valor $p = 4.19 \times 10^{-10}$, lo cual indica una correlación positiva muy fuerte y estadísticamente significativa entre el oxígeno disuelto y la saturación de oxígeno en el agua. Dado que el valor p es mucho menor que 0.05, se rechaza la hipótesis nula ($H_0$) y se concluye que existe una relación monótona significativa entre ambas variables. Esto es consistente con la teoría físico-química, ya que la saturación de oxígeno depende directamente del contenido de oxígeno disuelto respecto a la capacidad máxima del agua para disolverlo a cierta temperatura y presión.
+
+::: {.callout-tip}
+## Prueba 4: Correlación entre fosfatos y clorofila-a
+
+ - $H_0$: No existe correlación entre la concentración de fosfatos y la clorofila-a en el agua.
+ - $H_1$: Existe una correlación significativa entre los fosfatos y la clorofila-a.
+:::
+
+Podría indicar efecto de nutrientes en productividad:
+```{r}
+cor.test(base$fosfatos, base$chla_agua, method = "spearman")
+```
+
+En este caso, el coeficiente de correlación de Spearman fue $\rho = -0.0316$, con un valor $p = 0.8407$. Esto indica una correlación extremadamente débil y no significativa entre la concentración de fosfatos y la clorofila-a. Dado que el valor p es mucho mayor que 0.05, no se rechaza la hipótesis nula ($H_0$), lo que sugiere que no hay evidencia estadística de una relación entre estas dos variables en el conjunto de datos analizado. Esto podría deberse a que otros factores (como la luz, nitrógeno u otras condiciones ambientales) están modulando la producción de fitoplancton más que el fósforo, o también a limitaciones en el tamaño muestral o a efectos de saturación.
+
+::: {.callout-tip}
+## Prueba 5: Correlación entre nitratos y coliformes fecales
+
+ - $H_0$: No existe correlación entre la concentración de nitratos y los coliformes fecales.
+ - $H_1$: Existe una correlación significativa entre nitratos y coliformes fecales.
+:::
+
+Puede sugerir contaminación orgánica:
+```{r}
+cor.test(base$nitratos, base$colifecalj, method = "spearman")
+```
+
+El coeficiente de Spearman fue $\rho = -0.1494$ con un valor $p = 0.339$, lo cual indica una correlación débil y no significativa entre la concentración de nitratos y la presencia de coliformes fecales en el agua. Aunque ambos pueden estar asociados a fuentes de contaminación orgánica, en este conjunto de datos no se encuentra evidencia estadística suficiente para rechazar la hipótesis nula ($H_0$). Esto sugiere que la presencia de coliformes fecales no necesariamente está asociada a una mayor concentración de nitratos en las muestras evaluadas.
+
+::: {.callout-tip}
+## Prueba 6: Correlación entre dureza y carbonatos
+
+ - $H_0$: No existe correlación entre la dureza del agua y la concentración de carbonatos.
+ - $H_1$: Existe una correlación significativa entre dureza y carbonatos.
+:::
+
+Ambas relacionadas con composición iónica del agua:
+```{r}
+cor.test(base$dureza, base$carbonatos, method = "spearman")
+```
+
+El coeficiente de Spearman fue $\rho = 0.2494$ con un valor $p = 0.2193$, lo cual indica una correlación positiva débil, pero no estadísticamente significativa entre la dureza del agua y la concentración de carbonatos. Aunque se esperaría una relación positiva dada su relación con la composición iónica del agua (especialmente por la presencia de calcio y magnesio), los resultados actuales no permiten concluir que exista una asociación consistente entre estas dos variables en el conjunto de datos analizado.
+
+::: {.callout-tip}
+## Prueba 7: Correlación entre salinidad y sulfatos (SO$_4^{2-}$)
+
+ - $H_0$: No existe correlación entre la salinidad y la concentración de sulfatos en el agua.
+ - $H_1$: Existe una correlación significativa entre salinidad y sulfatos.
+:::
+```{r}
+cor.test(base$salinidad, base$SO42, method = "spearman")
+```
+
+Aquí se obtuvo un coeficiente de Spearman $\rho = 0.5260$ y un valor $p = 0.04399$, indicando una correlación positiva moderada y estadísticamente significativa entre la salinidad y la concentración de sulfatos en el agua. Dado que el valor p es menor al umbral de significancia de 0.05, se rechaza la hipótesis nula ($H_0$) y se concluye que existe una asociación significativa entre ambas variables. Esto es coherente con lo esperado, ya que los sulfatos son uno de los iones que contribuyen a la salinidad del agua, especialmente en ambientes con influencia marina o mezcla salobre.

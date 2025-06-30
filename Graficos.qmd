@@ -225,5 +225,60 @@ base %>%
           diag  = list(continuous = wrap("densityDiag", alpha = 0.5))) +
   theme_minimal(base_size = 12)
 ```
+## Ubicación
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
 
+base %>%
+  filter(!is.na(oxigeno), is.finite(oxigeno), oxigeno < 20) %>%
+  ggplot(aes(x = ubi_muestra, y = oxigeno, fill = ubi_muestra)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(title = "Oxígeno disuelto según ubicación (valores < 20 mg/L)",
+       x = "", y = "Oxígeno (mg/L)") +
+  theme_minimal()
+```
+
+## DQO por tipo de Cuerpo
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+
+ggplot(base, aes(x = cuerpo, y = dqof, fill = cuerpo)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(title = "Demanda Química de Oxígeno (DQO) por tipo de cuerpo de agua",
+       x = "Tipo de cuerpo", y = "DQO") +
+  theme_minimal()
+```
+## Distribución conjunta (facet) para varias variables clave
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+
+base_long <- base %>%
+  select(ubi_muestra, cuerpo, oxigeno, salinidad, ph, chla_agua, dqof) %>%
+  pivot_longer(cols = c(oxigeno, salinidad, ph, chla_agua, dqof),
+               names_to = "variable", values_to = "valor") %>%
+  filter(!is.na(valor), is.finite(valor))  # Elimina NA e infinitos
+
+# Gráfico
+ggplot(base_long, aes(x = ubi_muestra, y = valor, fill = ubi_muestra)) +
+  geom_boxplot(alpha = 0.8, outlier.shape = 16, outlier.color = "black") +
+  facet_wrap(~ variable, scales = "free_y", ncol = 3) +
+  labs(
+    title = "Distribuciones de variables seleccionadas según ubicación vertical",
+    x = "Ubicación de la muestra",
+    y = "Valor medido"
+  ) +
+  theme_bw() +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    axis.text.x = element_text(angle = 0, vjust = 0.5),
+    legend.position = "bottom",
+    strip.text = element_text(face = "bold")
+  )
+```
 
