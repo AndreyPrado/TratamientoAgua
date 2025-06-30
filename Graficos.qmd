@@ -18,6 +18,7 @@ library(leaflet)
 library(ggcorrplot)
 library(skimr)
 library(GGally) 
+library(kableExtra)
 ```
 
 # Resultados
@@ -280,5 +281,87 @@ ggplot(base_long, aes(x = ubi_muestra, y = valor, fill = ubi_muestra)) +
     legend.position = "bottom",
     strip.text = element_text(face = "bold")
   )
+```
+
+```{r}
+#| fig-width: 10
+#| fig-height: 5
+#| message: false
+#| warning: false
+#| echo: false
+
+base %>%
+    filter(!is.na(oxigeno), is.finite(oxigeno)) %>%
+    mutate(sitio = factor(sitio, levels = unique(sitio))) %>% ggplot(aes(x = sitio, y = oxigeno, fill = ubi_muestra)) +
+    geom_boxplot(outlier.shape = 21, outlier.fill = "black", outlier.size = 2,
+                 position = position_dodge(width = 0.8)) +
+    labs(
+        title = "Oxígeno disuelto por sitio y profundidad",
+        x = "Sitio de muestreo",
+        y = "Oxígeno disuelto (mg/L)",
+        fill = "Ubicación"
+    ) +
+    scale_fill_manual(values = c("Fondo" = "#F8766D", "Superficie" = "#00BFC4")) +
+    theme_minimal(base_size = 13) +
+    theme(
+        axis.text.x = element_text(angle = 30, hjust = 1),
+        plot.title = element_text(hjust = 0.5, face = "bold"),
+        panel.grid.major.x = element_blank()
+    )
+
+base %>%
+    filter(!is.na(oxigeno), is.finite(oxigeno), !sitio %in% c("Claro", "Río Aguijitas")) %>%
+    mutate(sitio = factor(sitio, levels = unique(sitio))) %>%
+    ggplot(aes(x = sitio, y = oxigeno, fill = ubi_muestra)) +
+    geom_boxplot(outlier.shape = 21, outlier.fill = "black", outlier.size = 2,
+                 position = position_dodge(width = 0.8)) +
+    coord_cartesian(ylim = c(0, 7.5)) +  # <-- eje Y ajustado
+    labs(
+        title = "Oxígeno disuelto por sitio y profundidad sin Claro ni Rio Aguijitas",
+        x = "Sitio de muestreo",
+        y = "Oxígeno disuelto (mg/L)",
+        fill = "Ubicación"
+    ) +
+    scale_fill_manual(values = c("Fondo" = "#F8766D", "Superficie" = "#00BFC4")) +
+    theme_minimal(base_size = 13) +
+    theme(
+        axis.text.x = element_text(angle = 30, hjust = 1),
+        plot.title = element_text(hjust = 0.5, face = "bold"),
+        panel.grid.major.x = element_blank()
+    )
+```
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+
+kableExtra::kable(base %>%
+  count(sitio, cuerpo) %>%
+  tidyr::pivot_wider(names_from = cuerpo, values_from = n, values_fill = 0))
+```
+
+```{r}
+#| fig-width: 25
+#| fig-height: 10
+#| message: false
+#| warning: false
+#| echo: false
+
+ggplot(base, aes(x = interaction(sitio, ubi_muestra), y = dqof, fill = cuerpo)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(title = "DQO según sitio, ubicación y tipo de cuerpo", x = "Sitio + ubicación", y = "DQO")
+```
+```{r}
+base %>%
+  group_by(sitio, cuerpo, ubi_muestra) %>%
+  summarise(
+    n = n(),
+    dqof_mediana = median(dqof, na.rm = TRUE),
+    ph_promedio = mean(ph, na.rm = TRUE),
+    salinidad_sd = sd(salinidad, na.rm = TRUE)
+  ) %>%
+  arrange(desc(dqof_mediana)) %>% kableExtra::kable()
 ```
 
