@@ -225,6 +225,21 @@ ggcorrplot(matriz, method = "square", type = "lower",
 
 estructura_df <- skim(base)
 
+# Cantidad de NA's por columna
+
+NAs_columna <- data.frame(
+  Variable = names(sapply(base, function(x) sum(is.na(x)))),
+  NA_Count = as.numeric(sapply(base, function(x) sum(is.na(x))))
+) %>%
+  arrange(NA_Count)
+
+# Cantidad de NA's por fila
+
+NAs_filas <- base %>%
+  mutate(Fila = row_number(), NAs = rowSums(is.na(.))) %>%
+  select(Fila, NAs) %>%
+  arrange(NAs)
+
 
 
 ## Datos a analizar
