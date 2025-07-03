@@ -23,8 +23,7 @@ library(kableExtra)
 
 # Resultados
 ```{r}
-base <- read_excel("data/base_agua_limpia.xlsx")
-str(base)
+base <- read_excel("data/respaldo_base_limpia.xlsx")
 
 # Extra: volver a poner las categóricas como factores y la fecha como Date por que
 # al pasarse a excel pierde esta característica.
@@ -34,8 +33,30 @@ base$cuerpo <- as.factor(base$cuerpo)
 base$ubi_muestra <- as.factor(base$ubi_muestra)
 base <- base %>% mutate(across(
   c(sitio, ubi_muestra, cuerpo),
-  as.factor
-))
+  as.factor))
+base$latitud <- as.factor(base$latitud)
+base$longitud <- as.factor(base$longitud)
+base$horarecolectaj <- as_hms(base$horarecolectaj)
+
+base <- base[!is.na(base$dqoj),]
+
+base <- base %>%
+  select(-all_of(
+    base %>%
+      summarise(across(everything(), ~sum(is.na(.)))) %>%
+      pivot_longer(everything(), names_to = "columna", values_to = "cantidad_na") %>%
+      mutate(
+        total = nrow(base),
+        porcentaje_na = (cantidad_na / total) * 100
+      ) %>%
+      filter(porcentaje_na > 25) %>%
+      pull(columna)
+  ))
+str(base)
+```
+
+
+```{r}
 table(base$sitio)
 table(base$ubi_muestra)
 table(base$cuerpo)
@@ -72,6 +93,7 @@ base %>% ggplot(aes(x=dboj))+
 #| message: false
 #| warning: false
 #| echo: false
+
 base %>% 
   filter(!is.na(cuerpo)) %>% filter(dbof < 50) %>% ggplot(aes(x = cuerpo, y = dbof, fill = cuerpo))+
   geom_boxplot(alpha = 0.8)+
@@ -196,16 +218,28 @@ ggcorrplot(matriz, method = "square", type = "lower",
            title = "Mapa de Calor de Correlaciones para variables numéricas",
            ggtheme = ggplot2::theme_minimal())
 ```
+Este gráfico permite visualizar la fuerza y dirección de las relaciones lineales entre pares de variables mediante la correlación de Pearson, donde los valores cercanos a +1 indican una correlación positiva fuerte, los cercanos a -1 una correlación negativa fuerte, y los cercanos a 0 indican ausencia de relación lineal.
 
-## Matriz de Dispersión: DBO, DQO y Variables Relevantes
+En primer lugar, se observa una correlación positiva alta entre la `salinidad` y varias variables clave, como `amonio`, `nitritos`, `nitratos`, `alcalinidad total` y `dureza.` Este patrón es esperable en cuerpos de agua que presentan influencia marina, intrusión salina o descargas domésticas, ya que la salinidad refleja la concentración de iones disueltos como sodio, cloruro, calcio y magnesio. En estos contextos, también es común que se incremente la presencia de compuestos nitrogenados, ya sea por procesos de mineralización de materia orgánica o por aportes externos, como aguas residuales o escorrentía agrícola.
+
+Asimismo, se identifica una correlación positiva fuerte entre la `alcalinidad total` y la `dureza` con las formas inorgánicas del nitrógeno (`amonio`, `nitritos` y `nitratos`). Este hallazgo es consistente con la idea de que dichas variables comparten fuentes comunes, como la disolución de minerales carbonatados en aguas subterráneas, así como la presencia de residuos orgánicos o fertilizantes nitrogenados en cuerpos de agua superficiales. En zonas con alta actividad agrícola o urbana, es frecuente que estos componentes aumenten simultáneamente, reflejando una combinación de procesos naturales y antropogénicos.
+
+Por otro lado, se reportan correlaciones negativas marcadas entre algunas variables, particularmente entre dureza y silicatos, nitritos y silicatos, y salinidad y silicatos. Estos resultados también pueden interpretarse como parte de una dinámica hidrogeoquímica esperable. Los silicatos provienen usualmente de la meteorización de rocas silíceas y tienden a estar más presentes en aguas dulces o de baja mineralización, características de ambientes naturales con baja intervención humana. En contraste, la dureza, la alcalinidad y la salinidad aumentan típicamente en aguas más mineralizadas, influenciadas por rocas calcáreas, intrusión marina o actividades antrópicas. Por tanto, la correlación negativa entre estas variables podría reflejar un gradiente entre zonas de origen geológico silíceo (más naturales) y zonas con mayores cargas minerales y nutrientes (más intervenidas).
+
+Finalmente, la correlación negativa entre `silicatos` y `nitritos` puede interpretarse como una señal indirecta de presión antrópica: en áreas donde predominan las cargas nitrogenadas —producto de descargas residuales o fertilización—, suele observarse una menor concentración de elementos como el silicio, probablemente debido a diferencias en el origen de los aportes o al desplazamiento de fuentes naturales por actividades humanas.
+
+En conjunto, estos patrones de correlación no solo son coherentes con el conocimiento hidrogeoquímico existente, sino que también aportan evidencia sobre la coexistencia de procesos naturales y presiones antrópicas en los cuerpos de agua estudiados.
+
+<!-- ## Matriz de Dispersión: DBO, DQO y Variables Relevantes -->
 ```{r}
 #| fig-width: 20
 #| fig-height: 10
 #| message: false
 #| warning: false
 #| echo: false
+#| eval: false
 base %>%
-    select(dboj, dqoj, oxigeno, ph, amonio, nitratos, tempaguaj) %>%
+    select(dboj, dqoj, oxigeno, ph, amonio, nitratos) %>%
     na.omit() %>%
     ggpairs()
 ```
@@ -218,7 +252,7 @@ base %>%
 #| echo: false
 
 base %>%
-  select(cuerpo, dboj, dqoj, oxigeno, ph, amonio, nitratos, tempaguaj) %>%
+  select(cuerpo, dboj, dqoj, oxigeno, ph, amonio, nitratos) %>%
   na.omit() %>%
   ggpairs(aes(color = cuerpo, alpha = 0.7),
           upper = list(continuous = wrap("cor", size = 3.5)),
@@ -240,6 +274,7 @@ base %>%
        x = "", y = "Oxígeno (mg/L)") +
   theme_minimal()
 ```
+El análisis de oxígeno disuelto según la ubicación de muestreo revela un patrón claro: las muestras tomadas en el fondo presentan concentraciones significativamente más bajas que aquellas recolectadas en la superficie. Mientras que en la superficie los niveles de oxígeno oscilan alrededor de los 6 mg/L, en el fondo se observan valores medianos en torno a los 4 mg/L, con algunos registros cercanos a 2 mg/L que indican posibles condiciones de hipoxia. Este comportamiento es coherente con la dinámica de cuerpos de agua estratificados, donde el intercambio gaseoso, la fotosíntesis y la mezcla turbulenta favorecen la oxigenación superficial, mientras que la acumulación de materia orgánica y la falta de renovación vertical provocan un empobrecimiento del oxígeno en las capas profundas.
 
 ## DQO por tipo de Cuerpo
 ```{r}
@@ -253,6 +288,8 @@ ggplot(base, aes(x = cuerpo, y = dqof, fill = cuerpo)) +
        x = "Tipo de cuerpo", y = "DQO") +
   theme_minimal()
 ```
+La comparación de la Demanda Química de Oxígeno (DQO) entre cuerpos de agua dulce y salada muestra diferencias marcadas en los niveles de materia orgánica presente. En los cuerpos de agua dulce, la DQO alcanza valores considerablemente más altos, con una mediana cercana a 1200 mg/L, lo cual indica una elevada carga contaminante posiblemente asociada a descargas de origen doméstico, agrícola o industrial. Por el contrario, los cuerpos de agua salada presentan valores de DQO mucho más bajos y estables, lo que podría explicarse por su mayor capacidad de dilución, influencia de corrientes marinas y menor exposición a fuentes contaminantes directas. Estos resultados sugieren un mayor grado de deterioro en los cuerpos de agua dulce, lo cual refuerza la necesidad de monitoreo y control más estricto en estos ecosistemas.
+
 ## Distribución conjunta (facet) para varias variables clave
 ```{r}
 #| message: false
