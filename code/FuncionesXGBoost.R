@@ -559,6 +559,7 @@ base$horarecolectaj <- as_hms(base$horarecolectaj)
 
 base <- base[!is.na(base$dqoj),]
 
+
 ### Generar las particiones de los datos
 
 lista <- xg_particion_datos(base, "dqoj", 0.5, 123)
