@@ -327,8 +327,8 @@ xg_grafico_resultados <- function(modelo, lista_datos, title = "Valores reales v
   rmse_val <- round(rmse(test_y, preds), 2)
   
   ggplot(resultados, aes(x = real, y = prediccion)) +
-    geom_point(color = "steelblue", alpha = 0.6, size = 3) +
-    geom_abline(slope = 1, intercept = 0, color = "red", linetype = "dashed", linewidth = 1) +
+    geom_point(color = "#002F6C", alpha = 0.6, size = 3) +
+    geom_abline(slope = 1, intercept = 0, color = "#33658A", linetype = "dashed", linewidth = 1) +
     labs(
       title = title,
       x = "Valor Real",
@@ -337,7 +337,7 @@ xg_grafico_resultados <- function(modelo, lista_datos, title = "Valores reales v
     annotate(
       "text", x = min(resultados$real), y = max(resultados$prediccion),
       label = paste("RMSE =", rmse_val),
-      hjust = 0, vjust = 1, size = 5, color = "darkred"
+      hjust = 0, vjust = 1, size = 5, color = "#7ea8be"
     ) +
     theme_minimal()
 }
@@ -356,8 +356,8 @@ xg_grafico_residuos <- function(modelo, lista_datos, opti = FALSE){
   resultados <- data.frame(prediccion = preds, residual = test_y - preds)
   
   ggplot(resultados, aes(x = prediccion, y = residual)) +
-    geom_point(color = "#D55E00", alpha = 0.7) +
-    geom_hline(yintercept = 0, color = "red", linetype = "dashed") +
+    geom_point(color = "#002F6C", alpha = 0.7) +
+    geom_hline(yintercept = 0, color = "#33658A", linetype = "dashed") +
     labs(
       title = "Análisis de Residuales",
       x = "Predicción",
@@ -378,7 +378,7 @@ xg_grafico_importancia <- function(modelo, top = 10, opti = FALSE){
   else{
     importancia <- xgb.importance(model = modelo)
     ggplot(importancia[1:top,], aes(x = reorder(Feature, Gain), y = Gain)) +
-      geom_col(fill = "steelblue") +
+      geom_col(fill = "#002F6C") +
       coord_flip() +
       labs(
         title = "Importancia de Variables",
@@ -409,7 +409,7 @@ xg_serie_tiempo <- function(modelo, lista_datos, nombre_fecha, opti = FALSE){
   ggplot(resultados, aes(x = fecha)) + 
     geom_line(aes(y=real, color = "Valor Real"), size = 1.2)+
     geom_line(aes(y=prediccion,  color = "Predicción"), linetype = "dashed", size = 1.2) + 
-    scale_color_manual(values = c("Valor Real" = "#1b9e77", "Predicción" = "#d95f02")) +
+    scale_color_manual(values = c("Valor Real" = "#002F6C", "Predicción" = "#33658A")) +
     scale_x_date(
       date_breaks = "6 months",
       date_labels = "%b %Y"
@@ -439,8 +439,8 @@ xg_histograma_residuos <- function(modelo, lista_datos, opti = FALSE){
   residuos <- test_y - preds
   
   ggplot(data.frame(residuos = residuos), aes(x = residuos)) +
-    geom_histogram(fill = "#56B4E9", color = "black", bins = 30) +
-    geom_vline(xintercept = 0, linetype = "dashed", color = "red") +
+    geom_histogram(fill = "#002F6C", color = "black", bins = 30) +
+    geom_vline(xintercept = 0, linetype = "dashed", color = "#33658A") +
     labs(
       title = "Distribución de Residuos",
       x = "Residuo (Real - Predicción)",
@@ -462,14 +462,14 @@ xg_boxplot_residuos <- function(modelo, lista_datos, opti = FALSE){
   resultados <- data.frame(prediccion = preds, residuos = residuos, grupo = grupos)
   
   ggplot(resultados, aes(x = grupo, y = residuos)) +
-    geom_boxplot(fill = "#F0E442") +
-    geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+    geom_boxplot(fill = "#33658A") +
+    geom_hline(yintercept = 0, linetype = "dashed", color = "#E27D60") +
     labs(
       title = "Boxplot de Residuos por Cuartil de Predicción",
       x = "Cuartil de Predicción",
       y = "Residuo"
     ) +
-    theme_minimal()
+    theme_minimal(base_size = 8)
 }
 
 xg_densidad_predicciones <- function(modelo, lista_datos, opti = FALSE){
@@ -491,11 +491,11 @@ xg_densidad_predicciones <- function(modelo, lista_datos, opti = FALSE){
       title = "Distribución de Valores Reales y Predicciones",
       x = "Valor",
       y = "Densidad",
-      fill = "Tipo",
-      color = "Tipo"
+      fill = "Datos",
+      color = "Datos"
     ) +
-    scale_fill_manual(values = c("Real" = "#1b9e77", "Predicción" = "#d95f02")) +
-    scale_color_manual(values = c("Real" = "#1b9e77", "Predicción" = "#d95f02")) +
+    scale_fill_manual(values = c("Real" = "#002F6C", "Predicción" = "#E27D60")) +
+    scale_color_manual(values = c("Real" = "#002F6C", "Predicción" = "#E27D60")) +
     theme_minimal()
 }
 
@@ -509,8 +509,8 @@ xg_qqplot_residuos <- function(modelo, lista_datos, opti = FALSE){
   residuos <- test_y - preds
   
   ggplot(data.frame(residuos = residuos), aes(sample = residuos)) +
-    stat_qq(color = "#0072B2") +
-    stat_qq_line(color = "red", linetype = "dashed") +
+    stat_qq(color = "#002F6C") +
+    stat_qq_line(color = "#33658A", linetype = "dashed") +
     labs(
       title = "QQ-Plot de Residuos",
       x = "Cuantiles Teóricos",
@@ -532,15 +532,15 @@ xg_violin_residuos <- function(modelo, lista_datos, opti = FALSE){
   resultados <- data.frame(residuos = residuos, grupo = grupos)
   
   ggplot(resultados, aes(x = grupo, y = residuos)) +
-    geom_violin(fill = "#009E73", alpha = 0.6) +
-    geom_boxplot(width = 0.1, outlier.size = 0.5, fill = "white") +
-    geom_hline(yintercept = 0, color = "red", linetype = "dashed") +
+    geom_violin(fill = "#002F6C", alpha = 0.6) +
+    geom_boxplot(width = 0.1, outlier.size = 0.5, fill = "#B4C5D0") +
+    geom_hline(yintercept = 0, color = "#33658A", linetype = "dashed") +
     labs(
       title = "Distribución de Residuos por Cuartil de Predicción",
       x = "Cuartil de Predicción",
       y = "Residuo"
     ) +
-    theme_minimal()
+    theme_minimal(base_size = 8)
 }
 
 
@@ -549,7 +549,7 @@ xg_violin_residuos <- function(modelo, lista_datos, opti = FALSE){
 # JULIO - DQO
 
 ### Modificar un poco la base
-base <- read_excel("data/base_agua_limpia_julio.xlsx")
+base <- read_excel("/Users/gara/Desktop/Agua/TratamientoAgua/data/base_agua_limpia_julio.xlsx")
 base$latitud <- as.factor(base$latitud)
 base$longitud <- as.factor(base$longitud)
 base$sitio <- as.factor(base$sitio)
