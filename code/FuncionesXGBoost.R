@@ -656,3 +656,115 @@ xg_histograma_residuos(modelo_opti, lista, opti = TRUE)
 ### Graficar boxplot del modelo
 
 xg_boxplot_residuos(modelo_opti, lista, opti = TRUE)
+
+
+# FEBRERO - DQO
+
+### Modificar un poco la base
+base <- read_excel("data/base_agua_limpia_febrero.xlsx")
+base$latitud <- as.factor(base$latitud)
+base$longitud <- as.factor(base$longitud)
+base$sitio <- as.factor(base$sitio)
+base$ubi_muestra <- as.factor(base$ubi_muestra)
+base$cuerpo <- as.factor(base$cuerpo)
+base$horarecolectaf <- as_hms(base$horarecolectaf)
+
+base <- base[!is.na(base$dqof),]
+
+
+### Generar las particiones de los datos
+
+lista <- xg_particion_datos(base, "dqof", 0.5, 123)
+
+### Parámetros para el modelo
+
+parametros <- list(
+  objective = "reg:squarederror",
+  eval_metric = "rmse",
+  eta = 0.01,
+  max_depth = 10,
+  lambda = 2,
+  alpha = 0.1,
+  subsample = 0.7,
+  colsample_bytree = 0.7
+)
+
+### Creación y evaluación del modelo
+
+modelo <- xg_modelo_basico_cv(lista, parametros = parametros, nrounds = 1500, early = 50)
+
+### Graficar importancia de las variables
+
+xg_grafico_importancia(modelo, 15)
+
+### Graficar comparación entre valores reales y predicciones
+
+xg_grafico_resultados(modelo, lista)
+
+### Graficar residuos de las predicciones
+
+xg_grafico_residuos(modelo, lista)
+
+### Graficar las series de tiempo
+
+xg_serie_tiempo(modelo = modelo, lista_datos = lista, nombre_fecha = "fecha")
+
+### Graficar histograma del modelo
+
+xg_histograma_residuos(modelo, lista)
+
+### Graficar boxplot del modelo
+
+xg_boxplot_residuos(modelo, lista)
+
+### Graficar densidad del modelo
+
+xg_densidad_predicciones(modelo, lista)
+
+### Gráficar QQ-Plot de residuos para el modelo
+
+xg_qqplot_residuos(modelo, lista)
+
+### Graficar violin de residuos
+
+xg_violin_residuos(modelo, lista)
+
+### Grid para optimización del modelo
+
+grid <- expand.grid(
+  nrounds = 100,
+  eta = c(0.01, 0.1, 0.3),
+  max_depth = c(3, 6, 9),
+  gamma = 0,
+  colsample_bytree = 0.8,
+  min_child_weight = 1,
+  subsample = 0.8
+)
+
+### Crear y evaluar modelo optimizado
+
+modelo_opti <- xg_optimizar_modelo(lista, grid)
+
+### Graficar importancia de las variables del modelo optimizado
+
+xg_grafico_importancia(modelo_opti, 15, opti = TRUE)
+
+### Graficar comparación entre valores reales y predicciones del modelo optimizado
+
+xg_grafico_resultados(modelo_opti, lista, opti = TRUE)
+
+### Graficar residuos de las predicciones del modelo optimizado
+
+xg_grafico_residuos(modelo_opti, lista, opti = TRUE)
+
+### Graficar serie de tiempo del modelo optimizado
+
+xg_serie_tiempo(modelo = modelo_opti, lista_datos = lista, nombre_fecha = "fecha", opti = TRUE)
+
+### Graficar histograma del modelo ajustado
+
+xg_histograma_residuos(modelo_opti, lista, opti = TRUE)
+
+### Graficar boxplot del modelo
+
+xg_boxplot_residuos(modelo_opti, lista, opti = TRUE)
