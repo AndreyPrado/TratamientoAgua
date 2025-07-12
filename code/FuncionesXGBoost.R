@@ -549,7 +549,7 @@ xg_violin_residuos <- function(modelo, lista_datos, opti = FALSE){
 # JULIO - DQO
 
 ### Modificar un poco la base
-base <- read_excel("/Users/gara/Desktop/Agua/TratamientoAgua/data/base_agua_limpia_julio.xlsx")
+base <- read_excel("data/base_agua_limpia_julio.xlsx")
 base$latitud <- as.factor(base$latitud)
 base$longitud <- as.factor(base$longitud)
 base$sitio <- as.factor(base$sitio)
@@ -657,8 +657,12 @@ xg_histograma_residuos(modelo_opti, lista, opti = TRUE)
 
 xg_boxplot_residuos(modelo_opti, lista, opti = TRUE)
 
-
 # FEBRERO - DQO
+
+
+
+
+
 
 ### Modificar un poco la base
 base <- read_excel("data/base_agua_limpia_febrero.xlsx")
@@ -768,3 +772,19 @@ xg_histograma_residuos(modelo_opti, lista, opti = TRUE)
 ### Graficar boxplot del modelo
 
 xg_boxplot_residuos(modelo_opti, lista, opti = TRUE)
+
+
+## GRAFICOS EXTRA
+base <- read_excel('data/base_agua_limpia.xlsx')
+
+base %>% ggplot(aes(x = dqof)) +
+  geom_histogram(fill = "#002F6C", color = "black", bins = 30) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "#33658A") +
+  labs(
+    title = "Distribución de la Demanda Química de Oxígeno en Febrero",
+    x = "Demanda Química de Oxígeno en Febrero",
+    y = "Frecuencia"
+  ) +
+  theme_minimal()
+
+

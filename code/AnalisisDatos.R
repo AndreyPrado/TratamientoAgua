@@ -168,7 +168,7 @@ print(graf_10)
 
 ### Gráfico interactivo de mapa
 
-variable_mapa <- "dboj"
+variable_mapa <- "dqoj"
 
 datos_mapa <- base %>%
   mutate(
